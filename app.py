@@ -12,16 +12,20 @@ def create_app():
     app = Flask(__name__)
     CORS(app)
     
-    # Configuration for MySQL
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_URI', 'mysql+pymysql://root:harshu123@localhost/smartvoyager')
+    # Configuration
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
+        'DB_URI',
+        'mysql+pymysql://root:harshu123@localhost/smartvoyager'
+    )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'smartvoyager_fallback_key')
+    app.config['SECRET_KEY'] = os.environ.get(
+        'SECRET_KEY',
+        'smartvoyager_fallback_key'
+    )
     
     db.init_app(app)
     
     with app.app_context():
-        # Clean architecture dictates standard ORM recreations rather than runtime ALTER queries.
-        # Ensure to drop/recreate tables if schema changes.
         db.create_all()
 
     # Register Blueprints
@@ -30,13 +34,14 @@ def create_app():
     app.register_blueprint(user_bp)
     app.register_blueprint(authority_bp)
 
-    # UI Route
     @app.route('/')
     def index():
         return render_template('index.html')
 
     return app
 
+
+# ✅ OUTSIDE the function
 if __name__ == '__main__':
     app = create_app()
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000)

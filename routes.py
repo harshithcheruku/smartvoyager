@@ -79,10 +79,8 @@ def register():
             return jsonify({"status": "error", "error": "Email already registered", "data": {}}), 400
 
         # Assign admin role only for specific email
-        if email == "admin@smartvoyager.com":
-            role = "admin"
-        else:
-            role = "user"
+        admin_email = os.environ.get('ADMIN_EMAIL', 'admin@smartvoyager.com')
+        role = 'admin' if email.lower() == admin_email.lower() else 'user'
         new_user = User(name=name, email=email, role=role)
         new_user.set_password(password)
         db.session.add(new_user)

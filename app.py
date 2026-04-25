@@ -33,6 +33,20 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+        
+        # Auto-migrate new AI fields safely
+        try:
+            from sqlalchemy import text
+            db.session.execute(text("ALTER TABLE geozones ADD COLUMN place_type VARCHAR(50) DEFAULT 'general' NOT NULL;"))
+            db.session.execute(text("ALTER TABLE geozones ADD COLUMN description VARCHAR(255);"))
+            db.session.execute(text("ALTER TABLE geozones ADD COLUMN avg_response_time INTEGER DEFAULT 15 NOT NULL;"))
+            db.session.execute(text("ALTER TABLE incidents ADD COLUMN auto_triggered BOOLEAN DEFAULT FALSE NOT NULL;"))
+            db.session.commit()
+            print("Successfully migrated new AI fields to the database.")
+        except Exception as e:
+            db.session.rollback()
+            # If it fails, the columns likely already exist, which is fine
+            pass
 
     # ================= REGISTER ROUTES =================
     from routes import auth_bp, user_bp, authority_bp
@@ -44,6 +58,19 @@ def create_app():
     @app.route('/')
     def index():
         return render_template('index.html')
+        
+    @app.route('/favicon.ico')
+    def favicon():
+        return '', 204
+
+    @app.errorhandler(Exception)
+    def handle_global_error(e):
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "status": "error",
+            "error": str(e)
+        }), 500
 
     return app
 

@@ -78,6 +78,11 @@
                             <h4>AI Safety Analysis</h4>
                             <p id="ai-explanation-text">Awaiting data...</p>
                         </div>
+                        
+                        <div id="safety-suggestions-panel" class="hidden">
+                            <h4>Proactive Suggestions</h4>
+                            <ul id="suggestions-list"></ul>
+                        </div>
                     </div>
 
                     <div class="location-controls">
@@ -180,6 +185,17 @@
                         <option value="RISK">RISK</option>
                         <option value="RESTRICTED">RESTRICTED</option>
                     </select>
+                    <select id="zone-place-type" required style="background: rgba(0,0,0,0.3); color: white; padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); width: 100%; outline: none;">
+                        <option value="general" selected>General Area</option>
+                        <option value="tourist_spot">Tourist Spot</option>
+                        <option value="market">Market</option>
+                        <option value="forest">Forest</option>
+                        <option value="nightlife">Nightlife</option>
+                        <option value="transport">Transit Hub</option>
+                        <option value="isolated">Isolated Area</option>
+                    </select>
+                    <input type="text" id="zone-desc" placeholder="Brief Description (Optional)">
+                    <input type="number" id="zone-response-time" placeholder="Avg Response Time (mins)" value="15" required>
                 </div>
                 <button type="submit" class="btn-primary w-100">Add Zone</button>
             </form>

@@ -393,11 +393,14 @@ async function checkRisk() {
             
             // Geofencing Alerts
             const activeZone = r.zone_name;
-            if (activeZone !== currentAlertZone) {
-                if (currentAlertZone && !activeZone) {
+            const currentRiskLevel = level;
+            const alertKey = activeZone ? `${activeZone}_${currentRiskLevel}` : null;
+            
+            if (alertKey !== currentAlertZone) {
+                if (currentAlertZone && !alertKey) {
                     showToast(`✅ You exited the risk zone.`, 'safe', '✅');
                 }
-                currentAlertZone = activeZone; // Update state
+                currentAlertZone = alertKey; // Update state with zone + risk level
                 if (r.is_restricted) {
                     showToast(`🚫 You entered a RESTRICTED ZONE: ${r.zone_name}`, 'restricted', '⛔');
                 } else if (r.zone_type === 'RISK' && level === 'HIGH') {
@@ -422,6 +425,41 @@ async function checkRisk() {
             });
             
             aiText.innerHTML = `<strong>Hybrid AI Factors:</strong><br>${analysisHtml}`;
+            
+            // New UI Logic for Proactive AI
+            const suggestionsPanel = document.getElementById('safety-suggestions-panel');
+            const suggestionsList = document.getElementById('suggestions-list');
+            const dashboard = document.getElementById('user-dashboard');
+            
+            if (r.alert_type === 'warning' || r.alert_type === 'critical') {
+                suggestionsPanel.classList.remove('hidden');
+                suggestionsList.innerHTML = r.suggestions.map(s => `<li>${s}</li>`).join('');
+            } else {
+                suggestionsPanel.classList.add('hidden');
+            }
+            
+            if (r.alert_type === 'critical') {
+                if (!dashboard.classList.contains('red-alert-mode')) {
+                    dashboard.classList.add('red-alert-mode');
+                    // Play audio and vibrate on FIRST entering critical mode
+                    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                    try {
+                        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                        const osc = ctx.createOscillator();
+                        osc.type = 'square';
+                        osc.frequency.setValueAtTime(880, ctx.currentTime);
+                        osc.connect(ctx.destination);
+                        osc.start();
+                        osc.stop(ctx.currentTime + 0.3);
+                    } catch(e) { console.warn("Audio not supported"); }
+                }
+            } else {
+                dashboard.classList.remove('red-alert-mode');
+            }
+            
+            if (r.should_auto_sos && r.alert_type === 'critical') {
+                showToast("🚨 Auto-SOS Triggered for your safety!", "high", "🚨");
+            }
             
             updateUserMap(lat, lon);
         }
@@ -663,49 +701,6 @@ async function resolveIncident(id) {
     }
 }
 
-async function submitGeoZone(e) {
-    e.preventDefault();
-    const payload = {
-        name: document.getElementById('zone-name').value,
-        latitude: parseFloat(document.getElementById('zone-lat').value),
-        longitude: parseFloat(document.getElementById('zone-lon').value),
-        radius: parseFloat(document.getElementById('zone-radius').value),
-        risk_level: document.getElementById('zone-risk').value,
-        type: document.getElementById('zone-type').value
-    };
-    
-    showLoader();
-    try {
-        const res = await fetch(`${API_URL}/geozones`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify(payload)
-        });
-        handleFetchError(res);
-        const data = await res.json();
-        if (data.status === 'success') {
-            showToast(`✅ Zone Added: ${payload.name}`, 'safe', '✅');
-            e.target.reset();
-            closeGeofenceModal();
-            loadPublicZonesAdmin();
-            if (userMap) loadPublicZones();
-        } else {
-            showMessage(adminMsg, data.error, 'error');
-        }
-    } catch (err) {
-        if(err.message !== 'Unauthorized') showMessage(adminMsg, 'Failed to add zone', 'error');
-    } finally {
-        hideLoader();
-    }
-}
-
-function openGeofenceModal() {
-    document.getElementById('geofence-modal').classList.remove('hidden');
-}
-
-function closeGeofenceModal() {
-    document.getElementById('geofence-modal').classList.add('hidden');
-}
 
 async function loadPublicZonesAdmin() {
     if (!adminMap) return;
@@ -836,6 +831,9 @@ function editGeozone(zone) {
     document.getElementById('zone-radius').value = zone.radius;
     document.getElementById('zone-risk').value = zone.risk_level;
     document.getElementById('zone-type').value = zone.type || "RISK";
+    document.getElementById('zone-place-type').value = zone.place_type || "general";
+    document.getElementById('zone-desc').value = zone.description || "";
+    document.getElementById('zone-response-time').value = zone.avg_response_time || 15;
     
     document.getElementById('geofence-modal-title').textContent = "✏️ EDIT GEOZONE";
     document.getElementById('geofence-modal').classList.remove('hidden');
@@ -850,7 +848,10 @@ async function submitGeoZone(e) {
         longitude: parseFloat(document.getElementById('zone-lon').value),
         radius: parseFloat(document.getElementById('zone-radius').value),
         risk_level: document.getElementById('zone-risk').value,
-        type: document.getElementById('zone-type').value
+        type: document.getElementById('zone-type').value,
+        place_type: document.getElementById('zone-place-type').value,
+        description: document.getElementById('zone-desc').value,
+        avg_response_time: document.getElementById('zone-response-time').value
     };
     
     showLoader();

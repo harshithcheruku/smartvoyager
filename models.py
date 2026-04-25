@@ -37,6 +37,9 @@ class GeoZone(db.Model):
     radius = db.Column(db.Float, nullable=False) # Radius in meters
     risk_level = db.Column(db.String(20), nullable=False) # LOW, MEDIUM, HIGH
     type = db.Column(db.String(20), default='RISK', nullable=False) # RISK, RESTRICTED, SAFE
+    place_type = db.Column(db.String(50), default='general', nullable=False)
+    description = db.Column(db.String(255), nullable=True)
+    avg_response_time = db.Column(db.Integer, default=15, nullable=False)
 
 class Incident(db.Model):
     __tablename__ = 'incidents'
@@ -46,4 +49,5 @@ class Incident(db.Model):
     longitude = db.Column(db.Float, nullable=False)
     type = db.Column(db.String(50), nullable=False) # e.g., robbery, accident
     status = db.Column(db.String(20), default='active', nullable=False)
+    auto_triggered = db.Column(db.Boolean, default=False, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)

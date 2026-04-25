@@ -13,7 +13,7 @@ def create_app():
     CORS(app)
 
     # ================= DATABASE CONFIG =================
-    db_url = os.environ.get('DATABASE_URL')
+    db_url = os.environ.get('DATABASE_URL') or os.environ.get('DB_URI') or 'sqlite:///smartvoyager.db'
 
     # Fix for Render PostgreSQL URL
     if db_url and db_url.startswith("postgres://"):

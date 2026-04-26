@@ -51,3 +51,4 @@ class Incident(db.Model):
     status = db.Column(db.String(20), default='active', nullable=False)
     auto_triggered = db.Column(db.Boolean, default=False, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    details = db.Column(db.Text, nullable=True)

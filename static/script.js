@@ -431,6 +431,27 @@ async function checkRisk() {
             const suggestionsList = document.getElementById('suggestions-list');
             const dashboard = document.getElementById('user-dashboard');
             
+            const safeGuidancePanel = document.getElementById('safe-guidance-panel');
+            if (safeGuidancePanel) {
+                if (r.safe_destination) {
+                    safeGuidancePanel.classList.remove('hidden');
+                    document.getElementById('safe-destination').textContent = r.safe_destination;
+                    document.getElementById('safe-distance').textContent = r.safe_distance_meters;
+                    document.getElementById('safe-direction').textContent = r.safe_direction;
+                    document.getElementById('safe-eta').textContent = r.eta_minutes;
+                    document.getElementById('safe-advice').textContent = r.escape_advice || "Move toward safety.";
+                } else if (r.escape_advice && ['MEDIUM', 'HIGH'].includes(level)) {
+                    safeGuidancePanel.classList.remove('hidden');
+                    document.getElementById('safe-destination').textContent = "None nearby";
+                    document.getElementById('safe-distance').textContent = "-";
+                    document.getElementById('safe-direction').textContent = "-";
+                    document.getElementById('safe-eta').textContent = "-";
+                    document.getElementById('safe-advice').textContent = r.escape_advice;
+                } else {
+                    safeGuidancePanel.classList.add('hidden');
+                }
+            }
+            
             if (r.alert_type === 'warning' || r.alert_type === 'critical') {
                 suggestionsPanel.classList.remove('hidden');
                 suggestionsList.innerHTML = r.suggestions.map(s => `<li>${s}</li>`).join('');
@@ -486,11 +507,13 @@ async function triggerSOS() {
     
     showLoader();
     try {
-        const res = await fetch(`${API_URL}/sos`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ latitude: lat, longitude: lon, type: 'emergency' })
-        });
+            const detailsInput = document.getElementById('sos-details');
+            const detailsVal = detailsInput ? detailsInput.value : '';
+            const res = await fetch(`${API_URL}/sos`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ latitude: lat, longitude: lon, type: 'emergency', details: detailsVal })
+            });
         handleFetchError(res);
         const data = await res.json();
         hideLoader();
@@ -498,6 +521,7 @@ async function triggerSOS() {
         if (data.status === 'success') {
             showMessage(dashMsg, '🚨 EMERGENCY SOS DISPATCHED TO AUTHORITIES 🚨', 'error');
             showToast('🚨 EMERGENCY SOS DISPATCHED!', 'high', '🚨');
+            if(document.getElementById('sos-details')) document.getElementById('sos-details').value = '';
             lastKnownLocation = null; // Force absolute latest update
             checkRisk();
         } else {
@@ -585,7 +609,9 @@ function renderIncidentFeed(incidents) {
                     <span class="incident-type">🚨 ${inc.type}</span>
                     <span class="incident-date">${timeStr}</span>
                 </div>
-                <div class="incident-body">
+                <div class="incident-body" style="font-size: 0.9rem;">
+                    <div style="font-weight:bold; color: ${inc.auto_triggered ? '#e67e22' : '#e74c3c'}; margin-bottom: 5px;">${inc.source_label || "ALERT"}</div>
+                    <strong>Details:</strong> ${inc.details || "No description provided"}<br>
                     <strong>User ID:</strong> ${inc.user_id}<br>
                     <strong>Location:</strong> ${inc.latitude.toFixed(5)}, ${inc.longitude.toFixed(5)}
                 </div>

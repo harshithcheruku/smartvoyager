@@ -200,7 +200,8 @@ def get_risk(current_user):
             ).filter(Incident.timestamp >= five_mins_ago).first()
             
             if not recent_auto_sos:
-                auto_inc = Incident(user_id=current_user.id, latitude=lat, longitude=lon, type='auto_emergency', status='active', auto_triggered=True)
+                auto_details = "AI triggered emergency alert due to high risk detection"
+                auto_inc = Incident(user_id=current_user.id, latitude=lat, longitude=lon, type='auto_emergency', status='active', auto_triggered=True, details=auto_details)
                 db.session.add(auto_inc)
                 db.session.commit()
 
@@ -227,11 +228,13 @@ def sos(current_user):
         if lat is None or lon is None:
             return jsonify({"status": "error", "error": "Missing required fields"}), 400
 
+        details = data.get('details', 'Emergency alert triggered by user')
+
         is_valid, msg, lat, lon = validate_coordinates(lat, lon)
         if not is_valid:
             return jsonify({"status": "error", "error": msg}), 400
 
-        incident = Incident(user_id=current_user.id, latitude=lat, longitude=lon, type=inc_type, status='active')
+        incident = Incident(user_id=current_user.id, latitude=lat, longitude=lon, type=inc_type, status='active', details=details)
         db.session.add(incident)
         db.session.commit()
 
@@ -252,7 +255,9 @@ def get_user_incidents(current_user):
                 "id": i.id, 
                 "type": i.type, 
                 "status": i.status, 
-                "timestamp": i.timestamp.isoformat() if getattr(i, "timestamp", None) else None
+                "timestamp": i.timestamp.isoformat() if getattr(i, "timestamp", None) else None,
+                "details": getattr(i, 'details', None) or "No description provided",
+                "source_label": "AUTO GENERATED ALERT" if getattr(i, 'auto_triggered', False) else "USER INITIATED ALERT"
             }
             for i in incidents
         ]
@@ -315,7 +320,10 @@ def get_incidents(current_user):
                 "longitude": float(i.longitude or 0.0), 
                 "type": getattr(i, 'type', 'unknown'), 
                 "status": getattr(i, 'status', 'active'), 
-                "timestamp": i.timestamp.isoformat() if getattr(i, "timestamp", None) else None
+                "timestamp": i.timestamp.isoformat() if getattr(i, "timestamp", None) else None,
+                "auto_triggered": getattr(i, 'auto_triggered', False),
+                "details": getattr(i, 'details', None) or "No description provided",
+                "source_label": "AUTO GENERATED ALERT" if getattr(i, 'auto_triggered', False) else "USER INITIATED ALERT"
             })
             
         return jsonify({"status": "success", "data": {"incidents": data}}), 200

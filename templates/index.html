@@ -83,6 +83,16 @@
                             <h4>Proactive Suggestions</h4>
                             <ul id="suggestions-list"></ul>
                         </div>
+
+                        <div id="safe-guidance-panel" class="hidden" style="margin-top: 15px; background: rgba(46, 204, 113, 0.15); border-left: 4px solid #2ecc71; padding: 10px; border-radius: 6px;">
+                            <h4 style="color: #2ecc71; margin-bottom: 8px;">🛡️ SafeRoute Guidance</h4>
+                            <div style="font-size: 0.9rem;">
+                                <strong>Destination:</strong> <span id="safe-destination">-</span><br>
+                                <strong>Distance:</strong> <span id="safe-distance">-</span> m (<span id="safe-direction">-</span>)<br>
+                                <strong>ETA:</strong> <span id="safe-eta">-</span> min walking<br>
+                                <p id="safe-advice" style="margin-top: 8px; font-style: italic;"></p>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="location-controls">
@@ -94,6 +104,7 @@
                     <div class="update-status text-muted mt-2 text-center" style="font-size: 0.85rem;"
                         id="last-updated">Last updated: Just now</div>
 
+                    <textarea id="sos-details" class="input-field mt-3" placeholder="Optional: Describe your emergency..." rows="2" style="width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 10px; resize: none; margin-bottom: -5px;"></textarea>
                     <button id="sos-btn" class="btn-danger pulse mt-3" onclick="triggerSOS()">🚨 SOS / EMERGENCY
                         🚨</button>
                 </div>

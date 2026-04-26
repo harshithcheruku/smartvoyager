@@ -19,6 +19,21 @@ class AIModule:
         return R * c
 
     @staticmethod
+    def get_direction(lat1, lon1, lat2, lon2):
+        dLon = math.radians(lon2 - lon1)
+        lat1 = math.radians(lat1)
+        lat2 = math.radians(lat2)
+        y = math.sin(dLon) * math.cos(lat2)
+        x = math.cos(lat1) * math.sin(lat2) - math.sin(lat1) * math.cos(lat2) * math.cos(dLon)
+        bearing = math.atan2(y, x)
+        bearing = math.degrees(bearing)
+        bearing = (bearing + 360) % 360
+        
+        dirs = ["North", "North-East", "East", "South-East", "South", "South-West", "West", "North-West"]
+        ix = int(round(bearing / 45.0)) % 8
+        return dirs[ix]
+
+    @staticmethod
     def calculate_zone_score(user_lat, user_lon, geozones):
         if not geozones:
             return 0.0, "No geo-zones defined.", False, None, None
@@ -204,6 +219,32 @@ class AIModule:
             alert_type = "warning"
         elif risk_level == "HIGH":
             alert_type = "critical"
+            
+        # SafeRoute AI Guidance
+        safe_destination = None
+        safe_distance_meters = None
+        safe_direction = None
+        eta_minutes = None
+        escape_advice = None
+        
+        if risk_level in ["MEDIUM", "HIGH"]:
+            nearest_safe_zone = None
+            min_dist = float('inf')
+            for zone in geozones:
+                if getattr(zone, 'type', 'RISK') == 'SAFE':
+                    dist = AIModule.haversine(user_lat, user_lon, zone.latitude, zone.longitude)
+                    if dist < min_dist:
+                        min_dist = dist
+                        nearest_safe_zone = zone
+                        
+            if nearest_safe_zone:
+                safe_destination = nearest_safe_zone.name
+                safe_distance_meters = int(min_dist)
+                safe_direction = AIModule.get_direction(user_lat, user_lon, nearest_safe_zone.latitude, nearest_safe_zone.longitude)
+                eta_minutes = math.ceil(min_dist / 1.38 / 60) # 1.38 m/s = 5 km/h
+                escape_advice = "Move immediately toward nearest safe zone and remain in visible public area."
+            else:
+                escape_advice = "Move toward nearest crowded road, shop, security point, or authority area."
 
         return {
             "risk_level": (risk_level or "LOW"),
@@ -214,5 +255,10 @@ class AIModule:
             "zone_type": zone_type if zone_type else None,
             "suggestions": suggestions if isinstance(suggestions, list) else [],
             "should_auto_sos": bool(should_auto_sos),
-            "alert_type": (alert_type or "none")
+            "alert_type": (alert_type or "none"),
+            "safe_destination": safe_destination,
+            "safe_distance_meters": safe_distance_meters,
+            "safe_direction": safe_direction,
+            "eta_minutes": eta_minutes,
+            "escape_advice": escape_advice
         }
